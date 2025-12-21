@@ -86,7 +86,7 @@ Download the latest DMG from the [Releases](../../releases) page.
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/VoxScript.git
+git clone https://github.com/davidcv5/VoxScript.git
 cd VoxScript
 
 # Open in Xcode
