@@ -1,0 +1,91 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# User-specific Xcode files
+xcuserdata/
+*.xcscmblueprint
+*.xcscheme
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+Carthage/Checkouts/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Code Injection
+iOSInjectionProject/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Thumbnails
+Thumbs.db
+ehthumbs.db
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# Build artifacts
+*.app
+*.dmg
+*.pkg
+*.zip
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+
+# Whisper models (too large for git - downloaded at runtime)
+# Note: VoxScript/Models/ contains source code and should NOT be ignored
+WhisperModels/
+*.mlmodelc
+*.mlpackage
+
+# Temporary files
+*.tmp
+*.temp
