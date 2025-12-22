@@ -163,6 +163,10 @@ struct AudioLevelIndicator: View {
 
 extension Notification.Name {
     static let cancelRecording = Notification.Name("cancelRecording")
+    static let showModelManager = Notification.Name("showModelManager")
+    static let toggleRecording = Notification.Name("toggleRecording")
+    static let selectModel = Notification.Name("selectModel")
+    static let showSettings = Notification.Name("showSettings")
 }
 
 // MARK: - Preview

@@ -31,7 +31,7 @@ struct TranscriptionSettingsView: View {
                 .disabled(appState.recordingState.isActive)
 
                 Button("Manage Models...") {
-                    appState.showingModelManager = true
+                    NotificationCenter.default.post(name: .showModelManager, object: nil)
                 }
 
                 Picker("Language", selection: Binding(

@@ -1,7 +1,8 @@
 import SwiftUI
 import AppKit
 
-/// Main application entry point
+// MARK: - Main App Entry Point
+
 @main
 struct VoxScriptApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -12,7 +13,7 @@ struct VoxScriptApp: App {
             SettingsView()
         }
 
-        // Model manager window
+        // Model manager window - this WindowGroup may be required for proper app lifecycle
         WindowGroup(id: "model-manager") {
             ModelDownloadView()
         }
@@ -108,11 +109,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func setupHotkeys() {
-        print("[VoxScript] Setting up hotkeys...")
         hotkeyManager.setup()
 
         hotkeyManager.onToggleRecording = { [weak self] in
-            print("[VoxScript] onToggleRecording callback fired")
             self?.toggleRecording()
         }
 
@@ -141,6 +140,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self,
             selector: #selector(handleSilenceDetected),
             name: .silenceDetected,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleShowModelManager),
+            name: .showModelManager,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleToggleRecording),
+            name: .toggleRecording,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleSelectModel(_:)),
+            name: .selectModel,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleShowSettings),
+            name: .showSettings,
             object: nil
         )
     }
@@ -297,21 +324,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func processRecording(audioURL: URL) {
         appState.setRecordingState(.transcribing)
 
-        // Debug: Check audio file
-        if let fileSize = try? FileManager.default.attributesOfItem(atPath: audioURL.path)[.size] as? Int64 {
-            print("[VoxScript] Audio file size: \(fileSize) bytes")
-            if fileSize < 1000 {
-                print("[VoxScript] Warning: Audio file is very small, may not contain speech")
-            }
-        }
-
         Task {
             do {
-                print("[VoxScript] Starting transcription of: \(audioURL.path)")
-                // Transcribe
+                // Transcribe audio
                 var result = try await transcriptionEngine.transcribe(audioURL: audioURL)
 
-                // Post-process if enabled
+                // Post-process if enabled and available
                 if settings.enablePostProcessing && appState.isOllamaAvailable && !result.text.isEmpty {
                     await MainActor.run {
                         appState.setRecordingState(.postProcessing)
@@ -329,19 +347,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
 
                 await MainActor.run {
-                    // Store result
+                    // Store and display result
                     appState.setLastTranscription(result)
 
-                    print("[VoxScript] Transcription completed: '\(result.text)'")
-                    print("[VoxScript] Text length: \(result.text.count) characters")
-
-                    // Insert text
+                    // Insert text at cursor
                     if !result.text.isEmpty {
-                        print("[VoxScript] Inserting text via clipboard...")
                         clipboardManager.insertText(result.text)
-                        print("[VoxScript] Text insertion attempted")
-                    } else {
-                        print("[VoxScript] Warning: Transcription result is empty")
                     }
 
                     // Complete
@@ -354,7 +365,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         self?.appState.setRecordingState(.idle)
                     }
 
-                    // Cleanup
+                    // Cleanup temp audio file
                     audioRecorder.cleanupTempFile()
                 }
 
@@ -369,7 +380,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         self?.appState.setRecordingState(.idle)
                     }
 
-                    // Cleanup
                     audioRecorder.cleanupTempFile()
                 }
             }
@@ -388,6 +398,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if appState.recordingState == .recording && settings.recordingMode == .continuous {
             stopRecording()
         }
+    }
+
+    @objc private func handleShowModelManager() {
+        showModelManager()
+    }
+
+    @objc private func handleToggleRecording() {
+        toggleRecording()
+    }
+
+    @objc private func handleSelectModel(_ notification: Notification) {
+        if let modelId = notification.object as? String {
+            switchModel(to: modelId)
+        }
+    }
+
+    @objc private func handleShowSettings() {
+        showSettings()
     }
 
     // MARK: - Windows
@@ -430,31 +458,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    private func showModelManager() {
-        if #available(macOS 14.0, *) {
-            // Use the WindowGroup for macOS 14+
-            NSApp.activate(ignoringOtherApps: true)
-            if let window = NSApp.windows.first(where: { $0.title == "VoxScript" && $0.contentView?.subviews.first is NSHostingView<ModelDownloadView> }) {
-                window.makeKeyAndOrderFront(nil)
-            } else {
-                // Open the window group
-                let url = URL(string: "voxscript://model-manager")!
-                NSWorkspace.shared.open(url)
-            }
-        } else {
-            // Fallback for older macOS
-            let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 450, height: 400),
-                styleMask: [.titled, .closable],
-                backing: .buffered,
-                defer: false
-            )
-            window.title = "Model Manager"
-            window.contentView = NSHostingView(rootView: ModelDownloadView())
-            window.center()
-            window.makeKeyAndOrderFront(nil)
+    private var modelManagerWindow: NSWindow?
 
+    private func showModelManager() {
+        // Check if window already exists and show it
+        if let window = modelManagerWindow, window.isVisible {
+            window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
+            return
         }
+
+        // Create new window
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 450, height: 400),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Model Manager"
+        window.contentView = NSHostingView(rootView: ModelDownloadView())
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        modelManagerWindow = window
+
+        NSApp.activate(ignoringOtherApps: true)
     }
 }

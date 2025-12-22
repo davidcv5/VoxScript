@@ -38,19 +38,31 @@ final class StatusBarController {
     // MARK: - Setup
 
     func setup() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        // Dispatch to main queue to ensure app is fully initialized
+        DispatchQueue.main.async { [weak self] in
+            self?.createStatusItem()
+        }
+    }
 
-        guard let button = statusItem?.button else { return }
+    private func createStatusItem() {
+        // Create status item with square length for SF Symbol icon
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
 
-        // Set icon
-        button.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "VoxScript")
-        button.image?.isTemplate = true
+        guard let item = statusItem, let button = item.button else { return }
 
-        // Create menu
+        // Configure SF Symbol icon
+        if let image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "VoxScript") {
+            button.image = image
+            button.image?.isTemplate = true  // Adapts to light/dark mode
+        }
+
+        // Build and attach menu
         buildMenu()
-        statusItem?.menu = menu
+        item.menu = menu
 
-        // Update menu when app state changes
+        // Persist position in menu bar across launches
+        item.autosaveName = "VoxScriptStatusItem"
+
         setupObservation()
     }
 

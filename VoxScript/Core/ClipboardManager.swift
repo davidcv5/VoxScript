@@ -12,6 +12,9 @@ final class ClipboardManager {
 
     private let settings = SettingsManager.shared
     private var previousPasteboardContents: String?
+    private var lastInsertionTime: Date?
+    private var lastInsertedText: String?
+    private let debounceInterval: TimeInterval = 0.5
 
     // MARK: - Initialization
 
@@ -21,6 +24,14 @@ final class ClipboardManager {
 
     /// Insert text at the current cursor position
     func insertText(_ text: String) {
+        // Debounce: prevent duplicate insertions of the same text within short time window
+        if let lastTime = lastInsertionTime,
+           let lastText = lastInsertedText,
+           Date().timeIntervalSince(lastTime) < debounceInterval,
+           lastText == text {
+            return
+        }
+
         var finalText = text
 
         // Add trailing newline if enabled, but NOT for terminal apps (would execute command)
@@ -28,8 +39,9 @@ final class ClipboardManager {
             finalText += "\n"
         }
 
-        print("[VoxScript] ClipboardManager.insertText called with \(finalText.count) chars")
-        print("[VoxScript] Insert directly setting: \(settings.insertDirectly)")
+        // Track this insertion for debouncing
+        lastInsertionTime = Date()
+        lastInsertedText = text
 
         if settings.insertDirectly {
             insertDirectly(finalText)
@@ -42,39 +54,23 @@ final class ClipboardManager {
 
     /// Insert text directly by simulating keyboard input
     private func insertDirectly(_ text: String) {
-        // Check if we're in a terminal app - they report AX success but don't actually insert
+        // Terminal apps require CGEvent typing (AX reports success but doesn't insert)
         if isTerminalAppFocused() {
-            print("[VoxScript] Terminal app detected, using CGEvent typing...")
-            if typeTextViaCGEvent(text) {
-                print("[VoxScript] CGEvent typing succeeded in terminal")
-                return
-            }
+            if typeTextViaCGEvent(text) { return }
         } else {
             // Try Accessibility API first (most reliable for standard apps)
-            if insertTextViaAccessibility(text) {
-                return
-            }
+            if insertTextViaAccessibility(text) { return }
 
             // Fallback: Try typing character by character via CGEvent
-            print("[VoxScript] Trying character-by-character typing...")
-            if typeTextViaCGEvent(text) {
-                print("[VoxScript] Character-by-character typing succeeded")
-                return
-            }
+            if typeTextViaCGEvent(text) { return }
         }
 
         // Last resort: clipboard + paste simulation
-        print("[VoxScript] Falling back to clipboard paste...")
-
-        // Save current pasteboard contents
         savePasteboardContents()
-
-        // Copy text to clipboard
         copyToClipboard(text)
 
         // Small delay to ensure clipboard is updated
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            // Simulate Cmd+V
             self?.simulatePaste()
 
             // Restore previous clipboard contents after a longer delay
@@ -113,14 +109,8 @@ final class ClipboardManager {
             "Hyper", "Warp", "kitty", "Tabby"
         ]
 
-        let isTerminal = terminalBundleIds.contains(bundleId) ||
-                         terminalAppNames.contains { appName.contains($0) }
-
-        if isTerminal {
-            print("[VoxScript] Detected terminal app: \(appName) (\(bundleId))")
-        }
-
-        return isTerminal
+        return terminalBundleIds.contains(bundleId) ||
+               terminalAppNames.contains { appName.contains($0) }
     }
 
     /// Insert text via clipboard without restoration
@@ -134,8 +124,7 @@ final class ClipboardManager {
     private func copyToClipboard(_ text: String) {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
-        let success = pasteboard.setString(text, forType: .string)
-        print("[VoxScript] Copied to clipboard: \(success), text length: \(text.count)")
+        pasteboard.setString(text, forType: .string)
     }
 
     private func savePasteboardContents() {
@@ -154,36 +143,24 @@ final class ClipboardManager {
     // MARK: - Keyboard Simulation
 
     private func simulatePaste() {
-        print("[VoxScript] simulatePaste() called")
-
         // Try AppleScript first (more reliable)
-        if simulatePasteViaAppleScript() {
-            print("[VoxScript] Paste via AppleScript succeeded")
-            return
-        }
-
-        print("[VoxScript] AppleScript failed, trying CGEvent...")
+        if simulatePasteViaAppleScript() { return }
 
         // Fallback to CGEvent
         let source = CGEventSource(stateID: .combinedSessionState)
-        let vKeyCode: CGKeyCode = 9
+        let vKeyCode: CGKeyCode = 9  // 'V' key
 
-        guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: vKeyCode, keyDown: true) else {
-            print("[VoxScript] Failed to create keyDown event")
+        guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: vKeyCode, keyDown: true),
+              let keyUp = CGEvent(keyboardEventSource: source, virtualKey: vKeyCode, keyDown: false) else {
             return
         }
+
         keyDown.flags = .maskCommand
-
-        guard let keyUp = CGEvent(keyboardEventSource: source, virtualKey: vKeyCode, keyDown: false) else {
-            print("[VoxScript] Failed to create keyUp event")
-            return
-        }
         keyUp.flags = .maskCommand
 
         keyDown.post(tap: .cgSessionEventTap)
         usleep(10000)
         keyUp.post(tap: .cgSessionEventTap)
-        print("[VoxScript] CGEvent Cmd+V posted")
     }
 
     private func simulatePasteViaAppleScript() -> Bool {
@@ -196,20 +173,13 @@ final class ClipboardManager {
         var error: NSDictionary?
         if let appleScript = NSAppleScript(source: script) {
             appleScript.executeAndReturnError(&error)
-            if let error = error {
-                print("[VoxScript] AppleScript error: \(error)")
-                return false
-            }
-            return true
+            return error == nil
         }
         return false
     }
 
     /// Insert text directly using Accessibility API
     private func insertTextViaAccessibility(_ text: String) -> Bool {
-        print("[VoxScript] Trying Accessibility API insertion...")
-
-        // Get system-wide accessibility element
         let systemWide = AXUIElementCreateSystemWide()
 
         // Get the focused element
@@ -221,16 +191,10 @@ final class ClipboardManager {
         )
 
         guard focusResult == .success, let element = focusedElement else {
-            print("[VoxScript] Failed to get focused element: \(axErrorDescription(focusResult))")
             return false
         }
 
         let axElement = element as! AXUIElement
-
-        // Log element info for debugging
-        var role: CFTypeRef?
-        AXUIElementCopyAttributeValue(axElement, kAXRoleAttribute as CFString, &role)
-        print("[VoxScript] Focused element role: \(role ?? "unknown" as CFTypeRef)")
 
         // Try to set the selected text (inserts at cursor position / replaces selection)
         let setResult = AXUIElementSetAttributeValue(
@@ -240,13 +204,10 @@ final class ClipboardManager {
         )
 
         if setResult == .success {
-            print("[VoxScript] Accessibility API insertion via kAXSelectedTextAttribute succeeded")
             return true
         }
 
-        print("[VoxScript] kAXSelectedTextAttribute failed: \(axErrorDescription(setResult))")
-
-        // Fallback: Try setting the entire value (for simple text fields)
+        // Fallback: Try appending to entire value (for simple text fields)
         var currentValue: CFTypeRef?
         let getResult = AXUIElementCopyAttributeValue(
             axElement,
@@ -255,7 +216,6 @@ final class ClipboardManager {
         )
 
         if getResult == .success, let currentText = currentValue as? String {
-            // Append text to current value
             let newText = currentText + text
             let appendResult = AXUIElementSetAttributeValue(
                 axElement,
@@ -263,38 +223,11 @@ final class ClipboardManager {
                 newText as CFTypeRef
             )
             if appendResult == .success {
-                print("[VoxScript] Accessibility API via kAXValueAttribute succeeded")
                 return true
             }
-            print("[VoxScript] kAXValueAttribute failed: \(axErrorDescription(appendResult))")
-        } else {
-            print("[VoxScript] Could not get kAXValueAttribute: \(axErrorDescription(getResult))")
         }
 
         return false
-    }
-
-    /// Convert AXError to human-readable description
-    private func axErrorDescription(_ error: AXError) -> String {
-        switch error {
-        case .success: return "success"
-        case .failure: return "failure (general error)"
-        case .illegalArgument: return "illegalArgument"
-        case .invalidUIElement: return "invalidUIElement"
-        case .invalidUIElementObserver: return "invalidUIElementObserver"
-        case .cannotComplete: return "cannotComplete (element busy or unresponsive)"
-        case .attributeUnsupported: return "attributeUnsupported"
-        case .actionUnsupported: return "actionUnsupported"
-        case .notificationUnsupported: return "notificationUnsupported"
-        case .notImplemented: return "notImplemented"
-        case .notificationAlreadyRegistered: return "notificationAlreadyRegistered"
-        case .notificationNotRegistered: return "notificationNotRegistered"
-        case .apiDisabled: return "apiDisabled (Accessibility not enabled)"
-        case .noValue: return "noValue"
-        case .parameterizedAttributeUnsupported: return "parameterizedAttributeUnsupported"
-        case .notEnoughPrecision: return "notEnoughPrecision"
-        @unknown default: return "unknown error (\(error.rawValue))"
-        }
     }
 
     /// Type text character by character using CGEvent with Unicode
@@ -309,9 +242,8 @@ final class ClipboardManager {
         for character in text {
             let string = String(character)
 
-            // Create key down event with virtual key 0 (we'll set Unicode instead)
+            // Create key events with virtual key 0 (we use Unicode string instead)
             guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true) else {
-                print("[VoxScript] Failed to create keyDown event for '\(character)'")
                 continue
             }
 
@@ -322,19 +254,17 @@ final class ClipboardManager {
             // Post to cgAnnotatedSessionEventTap for better app compatibility
             keyDown.post(tap: .cgAnnotatedSessionEventTap)
 
-            // Create key up event
-            guard let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false) else {
-                continue
+            // Create and post key up event
+            if let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false) {
+                keyUp.post(tap: .cgAnnotatedSessionEventTap)
             }
-            keyUp.post(tap: .cgAnnotatedSessionEventTap)
 
             successCount += 1
 
-            // Longer delay between characters for Terminal and virtualized apps
-            usleep(20000) // 20ms - more reliable for Terminal
+            // Delay between characters for Terminal and virtualized apps
+            usleep(20000)  // 20ms
         }
 
-        print("[VoxScript] Typed \(successCount)/\(text.count) characters via CGEvent")
         return successCount > 0
     }
 
