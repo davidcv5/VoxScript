@@ -47,5 +47,12 @@
 			</array>
 		</dict>
 	</array>
+	<!-- Sparkle Auto-Update Configuration -->
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/davidcv5/VoxScript/main/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>A6AiNXCrRJ9rYeiUcgbt/VeVBr907MI1/nVBTvQW1Gg=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 </dict>
 </plist>

@@ -89,3 +89,6 @@ WhisperModels/
 # Temporary files
 *.tmp
 *.temp
+
+# Sparkle signing keys (NEVER commit private keys!)
+.sparkle-keys/

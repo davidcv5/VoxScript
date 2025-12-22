@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Sparkle
 
 // MARK: - Main App Entry Point
 
@@ -37,6 +38,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let clipboardManager = ClipboardManager.shared
     private let soundPlayer = SoundPlayer.shared
 
+    // Sparkle updater controller for auto-updates
+    private var updaterController: SPUStandardUpdaterController!
+
     private var settingsWindow: NSWindow?
     private var onboardingWindow: NSWindow?
 
@@ -45,6 +49,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Hide dock icon
         NSApp.setActivationPolicy(.accessory)
+
+        // Initialize Sparkle updater
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
 
         // Setup components
         setupStatusBar()
@@ -93,6 +104,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         statusBar.onShowAbout = {
             NSApp.orderFrontStandardAboutPanel(nil)
+        }
+
+        statusBar.onCheckForUpdates = { [weak self] in
+            self?.updaterController.checkForUpdates(nil)
         }
 
         statusBar.onQuit = {

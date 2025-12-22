@@ -43,6 +43,7 @@
 		/* Frameworks */
 		FW001 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = FWPROD001; };
 		FW002 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = FWPROD002; };
+		FW003 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = FWPROD003; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -90,6 +91,7 @@
 			files = (
 				FW001 /* WhisperKit in Frameworks */,
 				FW002 /* KeyboardShortcuts in Frameworks */,
+				FW003 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -275,6 +277,7 @@
 			packageReferences = (
 				PKGREF001 /* XCRemoteSwiftPackageReference "WhisperKit" */,
 				PKGREF002 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
+				PKGREF003 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			productRefGroup = GRP002 /* Products */;
 			projectDirPath = "";
@@ -543,6 +546,14 @@
 				minimumVersion = 2.0.0;
 			};
 		};
+		PKGREF003 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -555,6 +566,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = PKGREF002 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
 			productName = KeyboardShortcuts;
+		};
+		FWPROD003 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = PKGREF003 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

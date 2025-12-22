@@ -20,6 +20,7 @@ final class StatusBarController {
     var onToggleRecording: (() -> Void)?
     var onOpenSettings: (() -> Void)?
     var onShowAbout: (() -> Void)?
+    var onCheckForUpdates: (() -> Void)?
     var onQuit: (() -> Void)?
     var onModelSelected: ((String) -> Void)?
     var onDownloadModel: (() -> Void)?
@@ -129,6 +130,15 @@ final class StatusBarController {
         )
         aboutItem.target = self
         menu?.addItem(aboutItem)
+
+        // Check for Updates
+        let updateItem = NSMenuItem(
+            title: "Check for Updates...",
+            action: #selector(checkForUpdates),
+            keyEquivalent: ""
+        )
+        updateItem.target = self
+        menu?.addItem(updateItem)
 
         menu?.addItem(NSMenuItem.separator())
 
@@ -261,6 +271,10 @@ final class StatusBarController {
 
     @objc private func showAbout() {
         onShowAbout?()
+    }
+
+    @objc private func checkForUpdates() {
+        onCheckForUpdates?()
     }
 
     @objc private func quit() {

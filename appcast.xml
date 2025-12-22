@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>VoxScript Updates</title>
+        <link>https://github.com/davidcv5/VoxScript</link>
+        <description>Most recent updates to VoxScript</description>
+        <language>en</language>
+
+        <!--
+        =====================================================
+        INSTRUCTIONS FOR ADDING A NEW RELEASE:
+        =====================================================
+        1. Build your app with updated CFBundleVersion in Info.plist
+        2. Create DMG: ./build-dmg.sh
+        3. Sign the DMG: ./sign-update.sh build/VoxScript-X.Y.dmg
+        4. Copy the signature output
+        5. Add a new <item> entry below with:
+           - Updated version numbers
+           - The signature from step 4
+           - File size in bytes
+           - Upload DMG to GitHub Releases
+        6. Commit and push appcast.xml
+        =====================================================
+        -->
+
+        <item>
+            <title>Version 1.0</title>
+            <description><![CDATA[
+                <h2>VoxScript 1.0</h2>
+                <p>Initial release of VoxScript - Local AI-powered dictation for macOS.</p>
+                <ul>
+                    <li>100% local speech-to-text using WhisperKit</li>
+                    <li>Global hotkey support</li>
+                    <li>Multiple Whisper model options</li>
+                    <li>Optional Ollama post-processing</li>
+                </ul>
+            ]]></description>
+            <pubDate>Sun, 22 Dec 2024 12:00:00 +0000</pubDate>
+            <sparkle:version>1</sparkle:version>
+            <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url="https://github.com/davidcv5/VoxScript/releases/download/v1.0/VoxScript-1.0.dmg"
+                sparkle:edSignature="mCzHId9/Yv4ZA7L8Ee6E9Qq7iu4MtDrvfTF/wHXQwl9JE37NcO6IGVjagYh3dkq9RlgS3vIDkv/Tx7Bui46aBQ=="
+                length="3966409"
+                type="application/octet-stream"/>
+        </item>
+
+    </channel>
+</rss>
