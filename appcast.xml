@@ -41,8 +41,8 @@
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure
                 url="https://github.com/davidcv5/VoxScript/releases/download/v1.0/VoxScript-1.0.dmg"
-                sparkle:edSignature="mCzHId9/Yv4ZA7L8Ee6E9Qq7iu4MtDrvfTF/wHXQwl9JE37NcO6IGVjagYh3dkq9RlgS3vIDkv/Tx7Bui46aBQ=="
-                length="3966409"
+                sparkle:edSignature="r5pnvxIUJUk5st/fAMO7wDuX6o3nVeDlEWrkVYO7HO9fkMkblB+kHM9+bBxP2g604wgGjx2a+YbobosmVzy/Bg=="
+                length="3966380"
                 type="application/octet-stream"/>
         </item>
 

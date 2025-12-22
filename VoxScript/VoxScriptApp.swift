@@ -50,9 +50,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Hide dock icon
         NSApp.setActivationPolicy(.accessory)
 
-        // Initialize Sparkle updater
+        // Initialize Sparkle updater (disabled until app is signed with Developer ID)
+        // Note: Sparkle requires proper code signing to function
         updaterController = SPUStandardUpdaterController(
-            startingUpdater: true,
+            startingUpdater: false,
             updaterDelegate: nil,
             userDriverDelegate: nil
         )
